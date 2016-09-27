@@ -19,22 +19,30 @@ import me.tomassetti.support.DirExplorer;
 import model.CommonMetaModel20;
 
 public class CreateClassHierarchyGraph {
-	public static DirectedGraphInterface dgi = new SetBasedDirectedGraph();
+	public static void main(String[] args) {
+		final String sourceDirectory = "C:\\users\\michael\\workspace\\frontend-demo\\src";
+		final String outputFileName = "graph.gml";
+		new GraphLoadSave().saveGML(constructClassHierachyGraph(new File(sourceDirectory)), outputFileName, true);
+	}
 
-	public static void listClasses(File projectDir) {
+	public static DirectedGraphInterface constructClassHierachyGraph(File projectDir) {
+		final DirectedGraphInterface dgi = new SetBasedDirectedGraph();
 		new DirExplorer((level, path, file) -> path.endsWith(".java"), (level, path, file) -> {
 			System.out.println(path);
-
+			for(int i = 0; i < path.length(); i++){
+				System.out.print("*");
+			}
+			System.out.print("\n");
 			try {
 				new VoidVisitorAdapter<Object>() {
-
+					
 					@Override
 					public void visit(ClassOrInterfaceDeclaration n, Object arg) {
 						DirectedNodeInterface node = dgi.createNode(n.getName());
 						dgi.addNode(node);
 						node.setProperty((GraphProperties.LABEL), n.getName());
 						node.setProperty((GraphProperties.TYPE), CommonMetaModel20.ClassType.getType());
-
+						System.out.println("Class: " + n.getName());
 						if (n.getChildrenNodes() != null) {
 							for (final ClassOrInterfaceType c : n.getExtends()) {
 								node = dgi.createNode(c.getName());
@@ -50,8 +58,7 @@ public class CreateClassHierarchyGraph {
 									dgi.addEdge(edge);
 								}
 
-								System.out.println("Superklasse: " + c.getName());
-
+								System.out.println("superClass: " + c.getName());
 							}
 							for (final ClassOrInterfaceType c : n.getImplements()) {
 								node = dgi.createNode(c.getName());
@@ -66,31 +73,19 @@ public class CreateClassHierarchyGraph {
 											(DirectedNodeInterface) dgi.getNode(n.getName()));
 									dgi.addEdge(edge);
 								}
-
-								System.out.println("Superklasse: " + c.getName());
 								System.out.println("Interface: " + c.getName());
-
 							}
 						}
 						super.visit(n, arg);
-						System.out.println(" * " + n.getName());
 					}
 				}.visit(JavaParser.parse(file), null);
-				System.out.println(); // empty line
+				System.out.println();
 			} catch (ParseException |
 
 					IOException e) {
 				new RuntimeException(e);
 			}
 		}).explore(projectDir);
-
+		return dgi;
 	}
-
-	public static void main(String[] args) {
-		File projectDir = new File("C:\\users\\michael\\workspace\\frontend-demo\\src");
-		listClasses(projectDir);
-		new GraphLoadSave().saveGML(dgi, "grail.graph.gml", true);
-
-	}
-
 }
